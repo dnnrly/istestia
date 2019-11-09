@@ -12,7 +12,7 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability to `goclitem`,
+To report a security vulnerability to `istestia`,
 please [file an issue](https://github.com/dnnrly/go-cmd-template/issues/new?assignees=&labels=&template=security.md&title=)
 at this repository's Issues page.
 

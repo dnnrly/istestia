@@ -1,4 +1,4 @@
-BIN=./goclitem
+BIN=./istestia
 
 @test "Can run the application" {
     run ${BIN}
