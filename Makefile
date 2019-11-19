@@ -16,15 +16,19 @@ export GO111MODULE=on
 export GOPROXY=https://proxy.golang.org
 export PATH := ./bin:$(PATH)
 
+.PHONY: install
 install: deps
 
+.PHONY: build
 build:
 	$(GO_BIN) build -v ./cmd/$(NAME)
 
+.PHONY: clean
 clean:
 	rm -f $(NAME)
 	rm -rf dist
 
+.PHONY: clean-deps
 clean-deps:
 	rm -rf ./bin
 	rm -rf ./tmp
@@ -38,10 +42,9 @@ clean-deps:
 ./bin/golangci-lint:
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.17.1
 
+.PHONY: test-deps
 test-deps: ./bin/bats ./bin/golangci-lint
 	$(GO_BIN) get -v ./...
-	$(GO_BIN) mod tidy
-	GO111MODULE=off $(GO_BIN) get gopkg.in/mikefarah/yq.v2
 	$(GO_BIN) mod tidy
 
 ./bin:
@@ -55,25 +58,33 @@ test-deps: ./bin/bats ./bin/golangci-lint
 	gunzip -f ./tmp/goreleaser.tar.gz
 	tar -C ./bin -xvf ./tmp/goreleaser.tar
 
+.PHONY: build-deps
 build-deps: ./bin/goreleaser
 
+.PHONY: deps
 deps: build-deps test-deps
 
+.PHONY: test
 test:
 	$(GO_BIN) test ./...
 
+.PHONY: acceptance-test
 acceptance-test:
-	bats --tap test/*.bats
+	bats -r --tap test/
 
+.PHONY: ci-test
 ci-test:
 	$(GO_BIN) test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+.PHONY: lint
 lint:
 	golangci-lint run
 
+.PHONY: release
 release: clean
 	$(GORELEASER_BIN) $(PUBLISH_PARAM)
 
+.PHONY: update
 update:
 	$(GO_BIN) get -u
 	$(GO_BIN) mod tidy

@@ -1,0 +1,8 @@
+package pkg
+
+import "testing"
+
+func TestFail(t *testing.T) {
+    t.Fail()
+}
+
