@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dnnrly/istestia/run"
 	"github.com/spf13/cobra"
 )
 
@@ -55,6 +56,7 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer os.Remove(tmpFile)
 
 	code, err := parseFile(tmpFile)
 	if err != nil {
@@ -64,11 +66,18 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 	tests := &visitor{}
 	ast.Walk(tests, code)
 
-	fmt.Printf("Found test %v\n", tests)
+	failed := false
+	for _, t := range *tests {
+		errTest := run.DoTest(t)
+		if errTest != nil {
+			failed = true
+		}
+	}
 
-	err = os.Remove(tmpFile)
-	if err != nil {
-		return err
+	// We want to exit with an error but not with usage
+	if failed {
+		fmt.Fprintf(os.Stderr, "Tests failed\n")
+		os.Exit(1)
 	}
 
 	return nil
