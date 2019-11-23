@@ -3,9 +3,13 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -52,12 +56,50 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	code, err := parseFile(tmpFile)
+	if err != nil {
+		return err
+	}
+
+	tests := &visitor{}
+	ast.Walk(tests, code)
+
+	fmt.Printf("Found test %v\n", tests)
+
 	err = os.Remove(tmpFile)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+type visitor []string
+
+func (v *visitor) Visit(n ast.Node) ast.Visitor {
+	if n == nil {
+		return nil
+	}
+
+	switch d := n.(type) {
+	case *ast.FuncDecl:
+		n := d.Name.Name
+		if strings.HasPrefix(n, "Test") || strings.HasPrefix(n, "Example") {
+			*v = append(*v, n)
+		}
+	}
+
+	return v
+}
+
+func parseFile(src string) (*ast.File, error) {
+	fs := token.NewFileSet()
+	f, err := parser.ParseFile(fs, src, nil, parser.AllErrors)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 func copyFile(src, dst string) error {
