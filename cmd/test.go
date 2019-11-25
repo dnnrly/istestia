@@ -28,15 +28,6 @@ var testCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// testCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	testCmd.Flags().StringVarP(&testFile, "file", "f", "", "the file that you would like to test against")
 }
 
@@ -76,6 +67,7 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 
 	// We want to exit with an error but not with usage
 	if failed {
+		os.Remove(tmpFile)
 		fmt.Fprintf(os.Stderr, "Tests failed\n")
 		os.Exit(1)
 	}
