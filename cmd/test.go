@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -32,22 +33,26 @@ func init() {
 }
 
 func testCmdRun(cmd *cobra.Command, args []string) error {
-	if testFile == "" {
-		return errors.New("must specify file with tests")
-	}
-
 	dir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
 	tmpFile := fmt.Sprintf("%s%cistestia_%s_test.go", dir, os.PathSeparator, randString(5))
+	if testFile == "" {
+		if len(args) == 0 {
+			return errors.New("must specify file with tests")
+		}
 
-	err = copyFile(testFile, tmpFile)
+		err = ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
+	} else {
+		err = copyFile(testFile, tmpFile)
+	}
+	defer os.Remove(tmpFile)
+
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmpFile)
 
 	code, err := parseFile(tmpFile)
 	if err != nil {
