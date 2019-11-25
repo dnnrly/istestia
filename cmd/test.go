@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -28,35 +29,30 @@ var testCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// testCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	testCmd.Flags().StringVarP(&testFile, "file", "f", "", "the file that you would like to test against")
 }
 
 func testCmdRun(cmd *cobra.Command, args []string) error {
-	if testFile == "" {
-		return errors.New("must specify file with tests")
-	}
-
 	dir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
 	tmpFile := fmt.Sprintf("%s%cistestia_%s_test.go", dir, os.PathSeparator, randString(5))
+	if testFile == "" {
+		if len(args) == 0 {
+			return errors.New("must specify file with tests")
+		}
 
-	err = copyFile(testFile, tmpFile)
+		err = ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
+	} else {
+		err = copyFile(testFile, tmpFile)
+	}
+	defer os.Remove(tmpFile)
+
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmpFile)
 
 	code, err := parseFile(tmpFile)
 	if err != nil {
@@ -76,6 +72,7 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 
 	// We want to exit with an error but not with usage
 	if failed {
+		os.Remove(tmpFile)
 		fmt.Fprintf(os.Stderr, "Tests failed\n")
 		os.Exit(1)
 	}
