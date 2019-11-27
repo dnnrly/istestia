@@ -18,6 +18,7 @@ import (
 )
 
 var testFile string
+var isMarkdown bool
 
 // testCmd represents the test command
 var testCmd = &cobra.Command{
@@ -30,6 +31,7 @@ func init() {
 	rootCmd.AddCommand(testCmd)
 
 	testCmd.Flags().StringVarP(&testFile, "file", "f", "", "the file that you would like to test against")
+	testCmd.Flags().BoolVarP(&isMarkdown, "markdown", "m", false, "set the input as markdown")
 }
 
 func testCmdRun(cmd *cobra.Command, args []string) error {
@@ -39,14 +41,15 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	tmpFile := fmt.Sprintf("%s%cistestia_%s_test.go", dir, os.PathSeparator, randString(5))
-	if testFile == "" {
-		if len(args) == 0 {
-			return errors.New("must specify file with tests")
-		}
-
-		err = ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
-	} else {
+	switch {
+	case testFile != "":
 		err = copyFile(testFile, tmpFile)
+	case len(args) == 0:
+		return errors.New("must specify file with tests")
+	case isMarkdown:
+		// Process the markdown
+	default:
+		err = ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
 	}
 	defer os.Remove(tmpFile)
 

@@ -1,0 +1,15 @@
+# Here is a title
+
+And some content
+
+With a working example:
+
+```
+package pkg
+
+import "testing"
+
+func TestPass(t *testing.T) {
+}
+```
+

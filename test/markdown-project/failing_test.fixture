@@ -1,0 +1,16 @@
+# This is a title
+
+Here's some content
+
+With a failing example
+
+```go
+package pkg
+
+import "testing"
+
+func TestFail(t *testing.T) {
+    t.Fail()
+}
+```
+

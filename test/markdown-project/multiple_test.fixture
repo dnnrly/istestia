@@ -1,0 +1,23 @@
+# Here is a title
+
+And some content
+
+With a working example:
+
+```go
+package pkg
+
+import "testing"
+
+func TestPass(t *testing.T) {
+}
+```
+
+```go
+package pkg
+
+import "testing"
+
+func TestPass(t *testing.T) {
+}
+```
