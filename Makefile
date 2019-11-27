@@ -84,6 +84,10 @@ lint:
 release: clean
 	$(GORELEASER_BIN) $(PUBLISH_PARAM)
 
+.PHONY: snapshot
+snapshot: clean
+	$(GORELEASER_BIN) --snapshot $(PUBLISH_PARAM)
+
 .PHONY: update
 update:
 	$(GO_BIN) get -u
