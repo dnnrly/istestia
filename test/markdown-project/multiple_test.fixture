@@ -9,7 +9,7 @@ package pkg
 
 import "testing"
 
-func TestPass(t *testing.T) {
+func Test_1(t *testing.T) {
 }
 ```
 
@@ -18,6 +18,6 @@ package pkg
 
 import "testing"
 
-func TestPass(t *testing.T) {
+func Test_2(t *testing.T) {
 }
 ```
