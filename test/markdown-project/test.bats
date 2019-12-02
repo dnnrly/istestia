@@ -17,7 +17,7 @@ teardown() {
 
 @test "Passes test when passing markdown as arg" {
    cd $BATS_TEST_DIRNAME
-   run $(cat passing_test.fixture | ${BIN} test --markdown)
+   run ${BIN} test --markdown "$(cat passing_test.fixture)"
    [ "$status" -eq 0 ]
    [ "$(find . | grep -c istestia_)" = "0" ]
 }
