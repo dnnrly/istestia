@@ -13,11 +13,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dnnrly/istestia/markdown"
 	"github.com/dnnrly/istestia/run"
 	"github.com/spf13/cobra"
 )
 
 var testFile string
+var isMarkdown bool
 
 // testCmd represents the test command
 var testCmd = &cobra.Command{
@@ -29,7 +31,18 @@ var testCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	testCmd.Flags().StringVarP(&testFile, "file", "f", "", "the file that you would like to test against")
+	testCmd.Flags().StringVarP(
+		&testFile,
+		"file", "f",
+		"",
+		"the file that you would like to test against",
+	)
+	testCmd.Flags().BoolVarP(
+		&isMarkdown,
+		"markdown", "m",
+		false,
+		"set the input as markdown",
+	)
 }
 
 func testCmdRun(cmd *cobra.Command, args []string) error {
@@ -38,41 +51,80 @@ func testCmdRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	tmpFile := fmt.Sprintf("%s%cistestia_%s_test.go", dir, os.PathSeparator, randString(5))
-	if testFile == "" {
-		if len(args) == 0 {
-			return errors.New("must specify file with tests")
+	tmpFiles := []string{}
+
+	switch {
+	case testFile == "" && len(args) == 0:
+		return errors.New("must specify file with tests or string with tests")
+	case isMarkdown:
+		md := ""
+		if testFile != "" {
+			data, err := ioutil.ReadFile(testFile)
+			if err != nil {
+				return err
+			}
+			md = string(data)
+		} else {
+			md = args[0]
 		}
-
-		err = ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
-	} else {
-		err = copyFile(testFile, tmpFile)
+		blocks, err := markdown.Extract(md)
+		if err != nil {
+			return err
+		}
+		for _, b := range blocks {
+			if b.Type != "go" {
+				return fmt.Errorf("language %s not supported", b.Type)
+			}
+			tmpFile := newTmpName(dir)
+			err := writeFile(b.Contents, tmpFile)
+			if err != nil {
+				return err
+			}
+			defer os.Remove(tmpFile)
+			tmpFiles = append(tmpFiles, tmpFile)
+		}
+	case testFile != "" && !isMarkdown:
+		tmpFile := newTmpName(dir)
+		err := copyFile(testFile, tmpFile)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpFile)
+		tmpFiles = append(tmpFiles, tmpFile)
+	case testFile == "" && !isMarkdown:
+		tmpFile := newTmpName(dir)
+		err := ioutil.WriteFile(tmpFile, []byte(args[0]), 0644)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpFile)
+		tmpFiles = append(tmpFiles, tmpFile)
 	}
-	defer os.Remove(tmpFile)
-
-	if err != nil {
-		return err
-	}
-
-	code, err := parseFile(tmpFile)
-	if err != nil {
-		return err
-	}
-
-	tests := &visitor{}
-	ast.Walk(tests, code)
 
 	failed := false
-	for _, t := range *tests {
-		errTest := run.DoTest(t)
-		if errTest != nil {
-			failed = true
+
+	for _, tmpFile := range tmpFiles {
+		code, err := parseFile(tmpFile)
+		if err != nil {
+			return err
+		}
+
+		tests := &visitor{}
+		ast.Walk(tests, code)
+
+		for _, t := range *tests {
+			errTest := run.DoTest(t)
+			if errTest != nil {
+				failed = true
+			}
 		}
 	}
 
 	// We want to exit with an error but not with usage
 	if failed {
-		os.Remove(tmpFile)
+		for _, t := range tmpFiles {
+			os.Remove(t)
+		}
 		fmt.Fprintf(os.Stderr, "Tests failed\n")
 		os.Exit(1)
 	}
@@ -108,6 +160,15 @@ func parseFile(src string) (*ast.File, error) {
 	return f, nil
 }
 
+func newTmpName(dir string) string {
+	return fmt.Sprintf(
+		"%s%cistestia_%s_test.go",
+		dir,
+		os.PathSeparator,
+		randString(5),
+	)
+}
+
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -122,6 +183,15 @@ func copyFile(src, dst string) error {
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeFile(contents, dst string) error {
+	err := ioutil.WriteFile(dst, []byte(contents), 0644)
 	if err != nil {
 		return err
 	}
